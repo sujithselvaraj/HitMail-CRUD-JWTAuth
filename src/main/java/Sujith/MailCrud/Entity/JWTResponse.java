@@ -13,6 +13,4 @@ import org.hibernate.hql.internal.classic.Parser;
 public class JWTResponse
 {
     private String jwtToken;
-
-
 }

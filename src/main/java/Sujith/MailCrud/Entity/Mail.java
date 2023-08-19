@@ -7,7 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Entity
 @Getter
@@ -25,5 +26,19 @@ public class Mail
     private List<String> recipients;
     private String subject;
     private String content;
+    private boolean deleted = false;
+    @Column(name = "deleted_for_recipient", nullable = false, columnDefinition = "boolean default false")
+    private boolean deletedForRecipient = false;
+
+    private LocalDateTime time;
+
+
+//    @ElementCollection
+//    private Set<String> deletedRecipients = new HashSet<>();
+
+
+
+
+
 
 }

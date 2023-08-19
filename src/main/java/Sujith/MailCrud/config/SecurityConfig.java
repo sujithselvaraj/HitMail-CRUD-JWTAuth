@@ -36,6 +36,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf()
                 .disable()
+                .cors()
+                .and()
                 .authorizeRequests()
                 .antMatchers("/mails/authenticate","/users")
                 .permitAll()
@@ -45,5 +47,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
     }
 }
