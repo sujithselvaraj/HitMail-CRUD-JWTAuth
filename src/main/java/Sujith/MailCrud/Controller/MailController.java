@@ -45,7 +45,7 @@ public class MailController
 
     }
 
-    //write a mail
+//    write a mail
     @PostMapping
     @PreAuthorize("isAuthenticated")
     public ResponseEntity<?> saveMail(@RequestBody Mail mail) {
@@ -67,6 +67,7 @@ public class MailController
         ApiResponse<String> response = new ApiResponse<>("success", "Email Sent Successfully"+mail.getRecipients(), null);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 
 
     //get the received emails or (inbox) for the specific logged users

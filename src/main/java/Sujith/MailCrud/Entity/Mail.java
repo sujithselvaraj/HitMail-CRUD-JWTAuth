@@ -24,7 +24,11 @@ public class Mail
     private String sender;
     @ElementCollection
     private List<String> recipients;
+//@OneToMany(mappedBy = "mail", cascade = CascadeType.ALL, orphanRemoval = true)
+//private List<MailRecipient> recipients = new ArrayList<>();
+    @Column(length = 1000)
     private String subject;
+    @Column(length = 10000)
     private String content;
     private boolean deleted = false;
     @Column(name = "deleted_for_recipient", nullable = false, columnDefinition = "boolean default false")
@@ -32,7 +36,10 @@ public class Mail
 
     private LocalDateTime time;
 
-
+    @ElementCollection
+    @MapKeyColumn(name = "recipient_email")
+    @Column(name = "is_deleted")
+    private Map<String, Boolean> recipientDeletionStatus = new HashMap<>();
 //    @ElementCollection
 //    private Set<String> deletedRecipients = new HashSet<>();
 

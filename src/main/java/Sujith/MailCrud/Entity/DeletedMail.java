@@ -27,7 +27,9 @@ public class DeletedMail
     @CollectionTable(name = "deleted_mail_recipients", joinColumns = @JoinColumn(name = "deleted_mail_id"))
     @Column(name = "recipient_email")
     private List<String> recipients=new ArrayList<>();
+    @Column(length = 1000)
     private String subject;
+    @Column(length = 10000)
     private String content;
 
     @Column(name = "deleted_at")
