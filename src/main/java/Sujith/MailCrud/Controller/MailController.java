@@ -45,6 +45,15 @@ public class MailController
 
     }
 
+    @GetMapping("/view/{id}")
+    public ResponseEntity<DeletedMail> viewDeletedMail(@PathVariable Long id) {
+
+        Optional<DeletedMail> mail = mailService.viewDeletedMail(id);
+
+        return mail.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+    }
 //    write a mail
     @PostMapping
     @PreAuthorize("isAuthenticated")

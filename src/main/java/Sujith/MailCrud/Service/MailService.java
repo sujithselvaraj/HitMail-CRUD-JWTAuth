@@ -5,12 +5,10 @@ import Sujith.MailCrud.Entity.Mail;
 import Sujith.MailCrud.Exception.ResourceNotFoundException;
 import Sujith.MailCrud.Repository.DeleteRepository;
 import Sujith.MailCrud.Repository.MailRepository;
-import Sujith.MailCrud.Repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +19,6 @@ public class MailService
 {
     private final MailRepository mailRepository;
     private final DeleteRepository deleteRepository;
-    private UserRepository userRepository;
     public Optional<Mail> getMailById(Long id){
         return mailRepository.findById(id);
     }
@@ -302,6 +299,9 @@ public class MailService
         }
     }
 
+    public Optional<DeletedMail> viewDeletedMail(Long id){
+        return deleteRepository.findById(id);
+    }
 
 //    public void deleteMail(Long id, String userEmail) {
 //        Optional<Mail> optionalMail = mailRepository.findById(id);
