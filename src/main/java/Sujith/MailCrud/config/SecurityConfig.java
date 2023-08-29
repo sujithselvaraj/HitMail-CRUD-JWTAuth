@@ -39,7 +39,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .cors()
                 .and()
                 .authorizeRequests()
-                .antMatchers("/mails/authenticate","/users")
+                .antMatchers("/mails/authenticate","/mails/users")
                 .permitAll()
                 .anyRequest()
                 .authenticated()

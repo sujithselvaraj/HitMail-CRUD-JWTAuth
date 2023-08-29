@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: dockerfile
     ports:
-      - "8083:8083"
+      - "8084:8084"
     depends_on:
       - postgres
     environment:
@@ -28,6 +28,16 @@ services:
       SPRING_DATASOURCE_PASSWORD: postgres
     networks:
       - mail
+  nginx:
+    image: nginx:latest
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl/:/etc/ssl/
+#    depends_on:
+#      - mailcrud
+
 volumes:
   postgres-data:
 

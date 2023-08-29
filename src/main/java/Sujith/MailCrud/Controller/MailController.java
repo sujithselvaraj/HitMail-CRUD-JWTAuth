@@ -26,7 +26,7 @@ import java.util.*;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/mails")
-@CrossOrigin(origins = "http://localhost:3000/")
+@CrossOrigin(origins = "*",maxAge = 3600)
 public class MailController
 {
     private MailService mailService;
@@ -144,7 +144,7 @@ public class MailController
                    jwtRequest.getUsername(),
                    jwtRequest.getPassword())
             );
-            System.out.println("1");
+//            System.out.println("1");
 
             final UserDetails userDetails = userService.loadUserByUsername(jwtRequest.getUsername());
             String token = null;
@@ -205,6 +205,13 @@ public class MailController
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/users")
+    public ResponseEntity<ApiResponse<?>> saveUser(@RequestBody User user)
+    {
 
+        User savedUser=userService.saveUser(user);
+        ApiResponse<String> response = new ApiResponse<>("success", "User Created Successfully", "User Created Successfully as " + user.getEmail());
+        return ResponseEntity.ok(response);
+    }
 
 }
