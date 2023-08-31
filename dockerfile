@@ -5,3 +5,5 @@ COPY target/MailCrud-0.0.1-SNAPSHOT.jar .
 EXPOSE 8084
 # Specify the command to run your application
 CMD ["java", "-jar", "MailCrud-0.0.1-SNAPSHOT.jar"]
+
+
