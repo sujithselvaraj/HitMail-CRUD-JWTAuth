@@ -20,6 +20,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -92,6 +95,8 @@ public class MailController
             simpleMailDTO.setSender(mail.getSender());
             simpleMailDTO.setSubject(mail.getSubject());
             simpleMailDTO.setId(mail.getId());
+            simpleMailDTO.setRecipients(mail.getRecipients());
+            simpleMailDTO.setContent(mail.getContent());
             simpleMailDTO.setTime(mail.getTime());
             simpleMailDTOs.add(simpleMailDTO);
         }
@@ -114,6 +119,7 @@ public class MailController
             simpleMailDTO.setRecipients(mail.getRecipients());
             simpleMailDTO.setId(mail.getId());
             simpleMailDTO.setTime(mail.getTime());
+            simpleMailDTO.setContent(mail.getContent());
             simpleMailDTO.setSubject(mail.getSubject());
             simpleMailDTOs.add(simpleMailDTO);
         }
@@ -136,24 +142,31 @@ public class MailController
 
 
     @PostMapping("/authenticate")
-    public JWTResponse authenticate(@RequestBody JWTRequest jwtRequest) throws Exception
+    public JWTResponse authenticate(@RequestBody JWTRequest jwtRequest, HttpServletResponse response) throws Exception
     {
 
         try {
-           authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+         Authentication authentication =   authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                    jwtRequest.getUsername(),
                    jwtRequest.getPassword())
             );
-//            System.out.println("1");
 
             final UserDetails userDetails = userService.loadUserByUsername(jwtRequest.getUsername());
             String token = null;
-
             if (userDetails.getUsername().equals (jwtRequest.getUsername())) {
                 token = jwtUtility.generateToken(userDetails);
-
-
             }
+
+            Cookie cookie = new Cookie("BearerToken", token);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true); // For HTTPS only
+            cookie.setPath("/"); // Set the cookie path
+            cookie.setMaxAge(1800000);
+            cookie.setDomain("");
+
+            // Add the cookie to the response
+            response.addCookie(cookie);
+
             return new JWTResponse(token);
 
         }
@@ -214,8 +227,100 @@ public class MailController
         return ResponseEntity.ok(response);
     }
 
-///////////////////////////////////////////////////////////////////////////////////////
+    @PostMapping("/reply/{id}")
+    @PreAuthorize("isAuthenticated")
+    public ResponseEntity<?> replyToMail(@PathVariable Long id, @RequestBody Mail replyMail) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String senderEmail = authentication.getName();
+
+        Optional<Mail> originalMailOptional = mailService.getMailById(id);
+
+        if (originalMailOptional.isPresent()) {
+            Mail originalMail = originalMailOptional.get();
+
+            replyMail.setSender(senderEmail);
+            replyMail.setTime(LocalDateTime.now());
+
+            List<String> recipients = new ArrayList<>();
+            recipients.add(originalMail.getSender());
+            recipients.addAll(replyMail.getRecipients());
+            replyMail.setRecipients(recipients);
+
+            replyMail.setSubject("Re: " + originalMail.getSubject());
 
 
+            Mail savedMail = mailService.saveMail(replyMail);
+
+            ApiResponse<String> response = new ApiResponse<>("success", "Email Replied Successfully", null);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            ApiResponse<String> response = new ApiResponse<>("error", "Original Email Not Found", null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    // Forward an email by creating a new email
+    @PostMapping("/forward/{id}")
+    @PreAuthorize("isAuthenticated")
+    public ResponseEntity<?> forwardMail(@PathVariable Long id, @RequestBody Mail forwardMail) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String senderEmail = authentication.getName();
+
+        // Get the original email by its ID
+        Optional<Mail> originalMailOptional = mailService.getMailById(id);
+
+        if (originalMailOptional.isPresent()) {
+            Mail originalMail = originalMailOptional.get();
+
+            // Set the sender of the forward email
+            forwardMail.setSender(senderEmail);
+            forwardMail.setTime(LocalDateTime.now());
+
+            // Optionally, you can modify recipients, subject, and content as needed for forwarding.
+
+            // Save the forward email
+            Mail savedMail = mailService.saveMail(forwardMail);
+
+            ApiResponse<String> response = new ApiResponse<>("success", "Email Forwarded Successfully", null);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            ApiResponse<String> response = new ApiResponse<>("error", "Original Email Not Found", null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+
+    // Clear the trash folder by permanently deleting all emails
+    @DeleteMapping("/clear-trash")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> clearTrash() {
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        try {
+            mailService.clearTrash(userEmail);
+            ApiResponse<String> response = new ApiResponse<>("success", "Trash Cleared Successfully", null);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            ApiResponse<String> response = new ApiResponse<>("error", "Failed to Clear Trash", null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+
+
+    @DeleteMapping("/trash/{id}")
+    public void deleteDeletedMailById(@PathVariable Long id) {
+        mailService.deleteDeletedMailById(id);
+    }
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+
+        Cookie cookie = new Cookie("BearerToken",null);
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);
+        cookie.setPath("/");
+        response.addCookie(cookie);
+        return ResponseEntity.ok().build();
+    }
 
 }

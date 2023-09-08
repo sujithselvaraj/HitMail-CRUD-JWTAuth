@@ -15,4 +15,5 @@ public class SimpleMailDTO
     private String subject;
     private List<String> recipients;
     private LocalDateTime time;
+    private String content;
 }

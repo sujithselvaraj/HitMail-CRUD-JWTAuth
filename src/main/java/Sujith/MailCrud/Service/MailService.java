@@ -8,6 +8,7 @@ import Sujith.MailCrud.Repository.MailRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -28,25 +29,9 @@ public class MailService
         return mailRepository.save(mail);
     }
 
-
-
-
-
-//    public List<Mail> getMailsByRecipient(String recipient) {
-//        // Query the database to find emails where the recipient's email is in the list
-//        // and the recipientDeletionStatus is false
-//        return mailRepository.findByRecipientsContainingAndRecipientDeletionStatus(recipient, false);
-//    }
-
-
     public List<Mail> getUndeletedMailsByRecipient(String recipient) {
         return mailRepository.findByRecipientsContainingAndDeletedForRecipientIsFalse(recipient);
     }
-
-
-//    public List<Mail> getUndeletedMailsByRecipient(String recipient) {
-//        return mailRepository.findUndeletedMailsByRecipient(recipient);
-//    }
 
 
     public List<Mail> getMailsBySender(String sender)
@@ -72,195 +57,12 @@ public class MailService
         }
     }
 
-//    public void deleteMail(Long id, String userEmail) {
-//        Optional<Mail> optionalMail = mailRepository.findById(id);
-//
-//        if (optionalMail.isPresent()) {
-//            Mail mail = optionalMail.get();
-//
-//            if (mail.getRecipients().contains(userEmail)) {
-//                // Move the mail to the recipient's deleted mails
-//                DeletedMail deletedMail = new DeletedMail();
-//                deletedMail.setSender(mail.getSender());
-//                deletedMail.setRecipients(Collections.singletonList(userEmail));
-//                deletedMail.setSubject(mail.getSubject());
-//                deletedMail.setContent(mail.getContent());
-//                deletedMail.setDeletedAt(LocalDateTime.now());
-//                deleteRepository.save(deletedMail);
-//
-//                // Remove the email from recipient's inbox
-//                mail.getRecipients().remove(userEmail);
-//                mailRepository.save(mail);
-//            } else {
-//                throw new ResourceNotFoundException("You don't have permission to delete this email.");
-//            }
-//        } else {
-//            throw new ResourceNotFoundException("Mail not found with id: " + id);
-//        }
-//    }
-
-
-//    public void deleteMail(Long id, String userEmail) {
-//        Optional<Mail> optionalMail = mailRepository.findById(id);
-//
-//        if (optionalMail.isPresent()) {
-//            Mail mail = optionalMail.get();
-//
-//            if (mail.getRecipients().contains(userEmail)) {
-//                // Mark the mail as deleted for the recipient
-//                mail.setDeletedForRecipient(true);
-//                mailRepository.save(mail);
-//
-//                // Move the mail to the recipient's deleted mails
-//                DeletedMail deletedMail = new DeletedMail();
-//                deletedMail.setSender(mail.getSender());
-//                deletedMail.setRecipients(Collections.singletonList(userEmail));
-//                deletedMail.setSubject(mail.getSubject());
-//                deletedMail.setContent(mail.getContent());
-//                deletedMail.setDeletedAt(LocalDateTime.now());
-//                deleteRepository.save(deletedMail);
-//            } else {
-//                throw new ResourceNotFoundException("You don't have permission to delete this email.");
-//            }
-//        } else {
-//            throw new ResourceNotFoundException("Mail not found with id: " + id);
-//        }
-//    }
-
-
-    ///corct
-//public void deleteMail(Long id, String userEmail) {
-//    Optional<Mail> optionalMail = mailRepository.findById(id);
-//
-//    if (optionalMail.isPresent()) {
-//        Mail mail = optionalMail.get();
-//
-//        if (mail.getRecipients().contains(userEmail)) {
-//            // Mark the mail as deleted for the recipient
-//            mail.setDeletedForRecipient(true);
-//            mailRepository.save(mail);
-//
-//            // Move the mail to the recipient's deleted mails
-//            DeletedMail deletedMail = new DeletedMail();
-//            deletedMail.setSender(mail.getSender());
-//            deletedMail.setRecipients(Collections.singletonList(userEmail));
-//            deletedMail.setSubject(mail.getSubject());
-//            deletedMail.setContent(mail.getContent());
-//            deletedMail.setDeletedAt(LocalDateTime.now());
-//            deleteRepository.save(deletedMail);
-//        } else {
-//            throw new ResourceNotFoundException("You don't have permission to delete this email.");
-//        }
-//    } else {
-//        throw new ResourceNotFoundException("Mail not found with id: " + id);
-//    }
-//}
-
-//final
-//    public void deleteMail(Long id, String userEmail) {
-//        Optional<Mail> optionalMail = mailRepository.findById(id);
-//
-//        if (optionalMail.isPresent()) {
-//            Mail mail = optionalMail.get();
-//
-//            if (mail.getRecipients().contains(userEmail)) {
-//                // Check if the mail is already deleted for this user
-//                if (!mail.isDeletedForRecipient()) {
-//                    // Mark the mail as deleted for the recipient
-//                    mail.setDeletedForRecipient(true);
-//                    mailRepository.save(mail);
-//
-//                    // Create a DeletedMail entry for this user
-//                    DeletedMail deletedMail = new DeletedMail();
-//                    deletedMail.setSender(mail.getSender());
-//                    deletedMail.setRecipients(Collections.singletonList(userEmail));
-//                    deletedMail.setSubject(mail.getSubject());
-//                    deletedMail.setContent(mail.getContent());
-//                    deletedMail.setId(mail.getId());
-//                    deletedMail.setDeletedAt(LocalDateTime.now());
-//                    deleteRepository.save(deletedMail);
-//                } else {
-//                    throw new ResourceNotFoundException("This email is already deleted for you.");
-//                }
-//            } else {
-//                throw new ResourceNotFoundException("You don't have permission to delete this email.");
-//            }
-//        } else {
-//            throw new ResourceNotFoundException("Mail not found with id: " + id);
-//        }
-//    }
-
-
-
-
-
-//    public List<DeletedMail> getDeletedMailsForUser(String userEmail) {
-//        return deleteRepository.findByRecipientsContaining(userEmail);
-//    }
-
-
-
 
     public List<DeletedMail> getDeletedMailsForUser(String userEmail) {
         List<DeletedMail> deletedMails = deleteRepository.findByRecipientsContaining(userEmail);
         return deletedMails;
     }
-//    public List<Mail> getInboxMailsForUser(String userEmail) {
-//        List<Mail> allMails = mailRepository.findAll(); // Fetch all emails
-//        List<Mail> inboxMails = new ArrayList<>();
-//
-//        for (Mail mail : allMails) {
-//            // Check if the email is not deleted for this recipient
-//            if (mail.getRecipientDeletionStatus().getOrDefault(userEmail, false)) {
-//                inboxMails.add(mail);
-//            }
-//        }
-//
-//        return inboxMails;
-//    }
-//public List<Mail> getInboxMailsForUser(String userEmail) {
-//    // Query the database to find emails where the recipient's email is in the list
-//    // and the recipientDeletionStatus is false
-//    return mailRepository.findByRecipientsContainingAndRecipientDeletionStatus(userEmail, false);
-//}
 
-
-
-//    public void deleteMail(Long id, String userEmail) {
-//        Optional<Mail> optionalMail = mailRepository.findById(id);
-//
-//        if (optionalMail.isPresent()) {
-//            Mail mail = optionalMail.get();
-//
-//            if (mail.getRecipients().contains(userEmail)) {
-//                // Check if the mail is already deleted for this user
-//                if (!mail.getRecipientDeletionStatus().getOrDefault(userEmail, false)) {
-//                    // Mark the mail as deleted for the recipient
-//                    mail.getRecipientDeletionStatus().put(userEmail, true);
-//                    mailRepository.save(mail);
-//
-//                    // Create a DeletedMail entry for this user
-//                    DeletedMail deletedMail = new DeletedMail();
-//                    deletedMail.setSender(mail.getSender());
-//                    deletedMail.setRecipients(Collections.singletonList(userEmail));
-//                    deletedMail.setSubject(mail.getSubject());
-//                    deletedMail.setContent(mail.getContent());
-//                    deletedMail.setId(mail.getId());
-//                    deletedMail.setDeletedAt(LocalDateTime.now());
-//                    deleteRepository.save(deletedMail);
-//                } else {
-//                    throw new ResourceNotFoundException("This email is already deleted for you.");
-//                }
-//            } else {
-//                throw new ResourceNotFoundException("You don't have permission to delete this email.");
-//            }
-//        } else {
-//            throw new ResourceNotFoundException("Mail not found with id: " + id);
-//        }
-//    }
-//final
-//
-//
     public void deleteMail(Long id, String userEmail) {
         Optional<Mail> optionalMail = mailRepository.findById(id);
 
@@ -269,16 +71,13 @@ public class MailService
 
 
                 if (mail.getRecipients().contains(userEmail)) {
-                // Check if the mail is already deleted for this user
                 if (!mail.isDeletedForRecipient()) {
-                    // Mark the mail as deleted for the recipient
                     mail.setDeletedForRecipient(true);
                                         mail.getRecipientDeletionStatus().put(userEmail, true);
 
                     mailRepository.save(mail);
 
 
-                    // Create a DeletedMail entry for this user
                     DeletedMail deletedMail = new DeletedMail();
                     deletedMail.setSender(mail.getSender());
                     deletedMail.setRecipients(Collections.singletonList(userEmail));
@@ -303,44 +102,15 @@ public class MailService
         return deleteRepository.findById(id);
     }
 
-//    public void deleteMail(Long id, String userEmail) {
-//        Optional<Mail> optionalMail = mailRepository.findById(id);
-//
-//        if (optionalMail.isPresent()) {
-//            Mail mail = optionalMail.get();
-//
-//            // Check if the user is a recipient of the mail
-//            if (mail.getRecipients().contains(userEmail)) {
-//                // Check if the mail is already deleted for this user
-//                if (!mail.getRecipientDeletionStatus().getOrDefault(userEmail, false)) {
-//                    // Mark the mail as deleted for the recipient
-//                    mail.getRecipientDeletionStatus().put(userEmail, true);
-//                    mailRepository.save(mail);
-//
-//                    // Create a DeletedMail entry for this user
-//                    DeletedMail deletedMail = new DeletedMail();
-//                    deletedMail.setSender(mail.getSender());
-//                    deletedMail.setRecipients(Collections.singletonList(userEmail));
-//                    deletedMail.setSubject(mail.getSubject());
-//                    deletedMail.setContent(mail.getContent());
-//                    deletedMail.setId(mail.getId());
-//                    deletedMail.setDeletedAt(LocalDateTime.now());
-//                    deleteRepository.save(deletedMail);
-//                } else {
-//                    throw new ResourceNotFoundException("This email is already deleted for you.");
-//                }
-//            } else {
-//                throw new ResourceNotFoundException("You don't have permission to delete this email.");
-//            }
-//        } else {
-//            throw new ResourceNotFoundException("Mail not found with id: " + id);
-//        }
-//    }
+    @Transactional
+    public void clearTrash(String recipientEmail) {
+        deleteRepository.deleteByRecipientsContaining(recipientEmail);
+    }
 
-
-
-
-
+    @Transactional
+    public void deleteDeletedMailById(Long id) {
+        deleteRepository.deleteById(id);
+    }
 
 
 

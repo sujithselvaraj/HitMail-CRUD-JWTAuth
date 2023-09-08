@@ -18,16 +18,9 @@ public class UserService implements UserDetailsService
 {
     private  UserRepository userRepository;
 
-
-    public List<User> getAllUsers()
-    {
-       return userRepository.findAll();
-    }
-
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
-
 
     public User saveUser(User user)
     {
