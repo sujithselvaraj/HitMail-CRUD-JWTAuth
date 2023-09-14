@@ -1,0 +1,5 @@
+jwt:
+    auth:
+        converter:
+            resource-id: login-app
+            principle-attribute: preferred_username

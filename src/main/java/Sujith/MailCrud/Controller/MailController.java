@@ -6,8 +6,11 @@ import Sujith.MailCrud.Entity.*;
 import Sujith.MailCrud.Exception.ResourceNotFoundException;
 import Sujith.MailCrud.Service.MailService;
 import Sujith.MailCrud.Service.UserService;
-import Sujith.MailCrud.utility.JWTUtility;
+//import Sujith.MailCrud.utility.JWTUtility;
 import lombok.AllArgsConstructor;
+
+
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,7 +22,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -29,13 +34,10 @@ import java.util.*;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/mails")
-@CrossOrigin(origins = "*",maxAge = 3600)
+@CrossOrigin(origins = "http://localhost:3000",maxAge = 3600)
 public class MailController
 {
     private MailService mailService;
-    private UserService userService;
-    private JWTUtility jwtUtility;
-    private AuthenticationManager authenticationManager;
 
     //get email by id (which is for view)
     @GetMapping("/{id}")
@@ -60,17 +62,13 @@ public class MailController
 //    write a mail
     @PostMapping
     @PreAuthorize("isAuthenticated")
-    public ResponseEntity<?> saveMail(@RequestBody Mail mail) {
+    public ResponseEntity<?> saveMail(@RequestBody Mail mail,@RequestHeader String username) {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String senderEmail = authentication.getName();
-
-        // Set the sender of the email
-        mail.setSender(senderEmail);
+        mail.setSender(username);
         mail.setTime(LocalDateTime.now());
         for (String recipient : mail.getRecipients()) {
-            User user = userService.getUserByEmail(recipient);
-            if (user == null) {
+            if (doesUserExistByUsername(recipient)==false)
+            {
                 return  ResponseEntity.badRequest().body("Recipient " + recipient + " is not a valid user.");
             }
         }
@@ -80,15 +78,33 @@ public class MailController
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    public boolean doesUserExistByUsername(String username) {
+        try {
+            String url = "http://localhost:8080/admin/master/console/#/mailapplication/users?username=" + username;
+            System.out.println(url);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBasicAuth("sujith", "sujith@1234");
 
+            RestTemplate restTemplate = new RestTemplate();
+
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+
+            System.out.println(response.getStatusCode().is2xxSuccessful());
+
+            return response.getStatusCode().is2xxSuccessful();
+        }
+         catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     //get the received emails or (inbox) for the specific logged users
     @GetMapping("/received-mails")
     @PreAuthorize("isAuthenticated")
-    public ResponseEntity<ApiResponse<List<SimpleMailDTO>>> getRecipientMails() {
-        String recipient = SecurityContextHolder.getContext().getAuthentication().getName();
+    public ResponseEntity<ApiResponse<List<SimpleMailDTO>>> getRecipientMails(@RequestHeader String username) {
 
-        List<Mail> recipientMails = mailService.getUndeletedMailsByRecipient(recipient);
+        List<Mail> recipientMails = mailService.getUndeletedMailsByRecipient(username);
         List<SimpleMailDTO> simpleMailDTOs = new ArrayList<>();
         for (Mail mail : recipientMails) {
             SimpleMailDTO simpleMailDTO = new SimpleMailDTO();
@@ -107,11 +123,9 @@ public class MailController
     //sent-box get the specific emails sent by the specific users
     @GetMapping("/get-send-emails")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<SimpleMailDTO>>> getMailsBySender()
+    public ResponseEntity<ApiResponse<List<SimpleMailDTO>>> getMailsBySender(@RequestHeader String username)
     {
-        String sender = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        List<Mail> sendedMails=mailService.getMailsBySender(sender);
+        List<Mail> sendedMails=mailService.getMailsBySender(username);
         List<SimpleMailDTO> simpleMailDTOs = new ArrayList<>();
         for (Mail mail : sendedMails) {
             SimpleMailDTO simpleMailDTO = new SimpleMailDTO();
@@ -131,63 +145,59 @@ public class MailController
     //update the mail by id
     @PutMapping("/update-mail/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Mail>> updateMailById(@PathVariable Long id,@RequestBody Mail updatedMail)
+    public ResponseEntity<ApiResponse<Mail>> updateMailById(@PathVariable Long id,@RequestBody Mail updatedMail,@RequestHeader String username)
     {
-        String sender = SecurityContextHolder.getContext().getAuthentication().getName();
-        updatedMail.setSender(sender);
+        updatedMail.setSender(username);
         Mail updateMail=mailService.updateMailById(updatedMail, id);
         ApiResponse<Mail> response = new ApiResponse<>("success", "Mail Updated Successfully", updateMail);
         return ResponseEntity.ok(response);
     }
 
 
-    @PostMapping("/authenticate")
-    public JWTResponse authenticate(@RequestBody JWTRequest jwtRequest, HttpServletResponse response) throws Exception
-    {
-
-        try {
-         Authentication authentication =   authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                   jwtRequest.getUsername(),
-                   jwtRequest.getPassword())
-            );
-
-            final UserDetails userDetails = userService.loadUserByUsername(jwtRequest.getUsername());
-            String token = null;
-            if (userDetails.getUsername().equals (jwtRequest.getUsername())) {
-                token = jwtUtility.generateToken(userDetails);
-            }
-
-            Cookie cookie = new Cookie("BearerToken", token);
-            cookie.setHttpOnly(true);
-            cookie.setSecure(true); // For HTTPS only
-            cookie.setPath("/"); // Set the cookie path
-            cookie.setMaxAge(1800000);
-            cookie.setDomain("");
-
-            // Add the cookie to the response
-            response.addCookie(cookie);
-
-            return new JWTResponse(token);
-
-        }
-        catch (BadCredentialsException e)
-        {
-            throw new Exception("INVALID_CREDENTIALS",e);
-        }
-
-
-    }
+//    @PostMapping("/authenticate")
+//    public JWTResponse authenticate(@RequestBody JWTRequest jwtRequest, HttpServletResponse response) throws Exception
+//    {
+//
+//        try {
+//           authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+//                   jwtRequest.getUsername(),
+//                   jwtRequest.getPassword())
+//            );
+//
+//            final UserDetails userDetails = userService.loadUserByUsername(jwtRequest.getUsername());
+//            String token = null;
+//            if (userDetails.getUsername().equals (jwtRequest.getUsername())) {
+//                token = jwtUtility.generateToken(userDetails);
+//            }
+//
+//            Cookie cookie = new Cookie("BearerToken", token);
+//            cookie.setHttpOnly(true);
+//            cookie.setSecure(true); // For HTTPS only
+//            cookie.setPath("/"); // Set the cookie path
+//            cookie.setMaxAge(1800000);
+//            cookie.setDomain("");
+//
+//            // Add the cookie to the response
+//            response.addCookie(cookie);
+//
+//            return new JWTResponse(token);
+//
+//        }
+//        catch (BadCredentialsException e)
+//        {
+//            throw new Exception("INVALID_CREDENTIALS",e);
+//        }
+//
+//
+//    }
 
 
     //delete the mail by using their id and received mails for an users and received users only delted the mail
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<String>> deleteMailById(@PathVariable Long id) {
-        // Get the authenticated user's email
-        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-
+    public ResponseEntity<ApiResponse<String>> deleteMailById(@PathVariable Long id,@RequestHeader String username) {
         try {
-            mailService.deleteMail(id, userEmail);
+            mailService.deleteMail(id, username);
             ApiResponse<String> response = new ApiResponse<>("success", "Email Deleted Successfully", null);
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
@@ -201,10 +211,9 @@ public class MailController
 
     @GetMapping("/deleted-mails")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<SimpleMailDTO>>> getDeletedMailsForUser() {
-        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+    public ResponseEntity<ApiResponse<List<SimpleMailDTO>>> getDeletedMailsForUser(@RequestHeader String username) {
 
-        List<DeletedMail> deletedMails = mailService.getDeletedMailsForUser(userEmail);
+        List<DeletedMail> deletedMails = mailService.getDeletedMailsForUser(username);
         List<SimpleMailDTO> simpleMailDTOs = new ArrayList<>();
         for (DeletedMail mail : deletedMails) {
             SimpleMailDTO simpleMailDTO = new SimpleMailDTO();
@@ -218,14 +227,14 @@ public class MailController
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/users")
-    public ResponseEntity<ApiResponse<?>> saveUser(@RequestBody User user)
-    {
-
-        User savedUser=userService.saveUser(user);
-        ApiResponse<String> response = new ApiResponse<>("success", "User Created Successfully", "User Created Successfully as " + user.getEmail());
-        return ResponseEntity.ok(response);
-    }
+//    @PostMapping("/users")
+//    public ResponseEntity<ApiResponse<?>> saveUser(@RequestBody User user)
+//    {
+//
+//        User savedUser=userService.saveUser(user);
+//        ApiResponse<String> response = new ApiResponse<>("success", "User Created Successfully", "User Created Successfully as " + user.getEmail());
+//        return ResponseEntity.ok(response);
+//    }
 
     @PostMapping("/reply/{id}")
     @PreAuthorize("isAuthenticated")
@@ -265,19 +274,15 @@ public class MailController
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String senderEmail = authentication.getName();
 
-        // Get the original email by its ID
         Optional<Mail> originalMailOptional = mailService.getMailById(id);
 
         if (originalMailOptional.isPresent()) {
             Mail originalMail = originalMailOptional.get();
 
-            // Set the sender of the forward email
             forwardMail.setSender(senderEmail);
             forwardMail.setTime(LocalDateTime.now());
 
-            // Optionally, you can modify recipients, subject, and content as needed for forwarding.
 
-            // Save the forward email
             Mail savedMail = mailService.saveMail(forwardMail);
 
             ApiResponse<String> response = new ApiResponse<>("success", "Email Forwarded Successfully", null);
@@ -291,11 +296,10 @@ public class MailController
     // Clear the trash folder by permanently deleting all emails
     @DeleteMapping("/clear-trash")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<String>> clearTrash() {
-        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+    public ResponseEntity<ApiResponse<String>> clearTrash(@RequestHeader String username) {
 
         try {
-            mailService.clearTrash(userEmail);
+            mailService.clearTrash(username);
             ApiResponse<String> response = new ApiResponse<>("success", "Trash Cleared Successfully", null);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -312,15 +316,15 @@ public class MailController
     }
 
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
-
-        Cookie cookie = new Cookie("BearerToken",null);
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(0);
-        cookie.setPath("/");
-        response.addCookie(cookie);
-        return ResponseEntity.ok().build();
-    }
+//    @PostMapping("/logout")
+//    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+//
+//        Cookie cookie = new Cookie("BearerToken",null);
+//        cookie.setHttpOnly(true);
+//        cookie.setMaxAge(0);
+//        cookie.setPath("/");
+//        response.addCookie(cookie);
+//        return ResponseEntity.ok().build();
+//    }
 
 }
